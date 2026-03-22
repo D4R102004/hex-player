@@ -2,7 +2,10 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from board import HexBoard
+try:
+    from board import HexBoard
+except ImportError:
+    from src.Urrutia_Dario_Alfonso.board import HexBoard
 
 
 class Player(ABC):

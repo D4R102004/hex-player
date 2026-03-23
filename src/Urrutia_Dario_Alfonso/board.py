@@ -112,9 +112,9 @@ class HexBoard(AbstractBoard):
         neighbors = []
 
         if row % 2 == 0:
-            directions = [(-1, -1), (-1, 0), (-1, 1), (0, 1), (1, 0), (0, -1)]
+            directions = [(-1, 0), (-1, 1), (0, -1), (0, 1), (1, 0), (1, 1)]
         else:
-            directions = [(0, -1), (-1, 0), (0, 1), (1, 1), (1, 0), (1, -1)]
+            directions = [(-1, -1), (-1, 0), (0, -1), (0, 1), (1, -1), (1, 0)]
 
         for dr, dc in directions:
             new_row, new_col = row + dr, col + dc

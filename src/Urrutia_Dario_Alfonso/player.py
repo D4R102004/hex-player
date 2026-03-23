@@ -13,7 +13,7 @@ class Player(ABC):
     Abstract base class for a player in the Hex game
     """
 
-    def __init__(self, player_id: int):
+    def __init__(self, player_id: int) -> None:
         """
         Initializes a player with a given ID
 

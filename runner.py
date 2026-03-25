@@ -211,3 +211,102 @@ class HexView:
             font=("Arial", 16, "bold"),
             fill="#333333",
         )
+
+    def update(self) -> None:
+        """
+        Refreshes the display to reflect the current game state.
+        """
+
+        self.draw_board()
+        self.draw_status()
+
+
+class HexController:
+    """
+    Controller layer of the HEX game.
+    Responsible for handling user input and coordinates Model↔View
+    """
+
+    def __init__(self, game: HexGame, view: HexView) -> None:
+        """
+        Initializes the controller with references to the game model and view.
+
+        Args:
+            game: The HexGame instance to control.
+            view: The HexView instance to update.
+        """
+
+        self.game = game
+        self.view = view
+
+    def _pixel_to_cell(self, x: float, y: float) -> tuple[int, int] | None:
+        """
+        For each cell, calculate its center.
+        Find the cell whose center is closest to where the user clicked.
+
+        Args:
+            x: The x-coordinate of the mouse click.
+            y: The y-coordinate of the mouse click.
+
+        Returns:
+            The (row, col) of the closest cell, or None if the board is empty.
+        """
+
+        closest = None
+        min_dist = float("inf")
+        for row in range(self.game.size):
+            for col in range(self.game.size):
+                cx, cy = self.view._cell_center(row, col)
+                dist = (cx - x) ** 2 + (cy - y) ** 2
+                if dist < min_dist:
+                    min_dist = dist
+                    closest = (row, col)
+        return closest
+
+    def _on_click(self, event: tk.Event) -> None:
+        """
+        Handles mouse click events on the canvas.
+
+        Processes the human player's move when they click a cell,
+        then triggers the AI response if the game continues.
+
+        Args:
+            event: The tkinter mouse click event containing
+                x and y pixel coordinates.
+        """
+
+        if self.game.is_human_turn() and not self.game.game_over:
+            cell = self._pixel_to_cell(event.x, event.y)
+            if cell:
+                row, col = cell
+                if self.game.make_move(row, col):
+                    self.view.update()
+                    if not self.game.game_over:
+                        self.view.root.after(100, self._ai_move)
+
+    def _ai_move(self) -> None:
+        """
+        Triggers the AI to make its move and updates the display.
+        """
+        ai_move = self.game.get_ai_move()
+        if ai_move:
+            row, col = ai_move
+            self.game.make_move(row, col)
+            self.view.update()
+
+    def start(self) -> None:
+        """
+        Starts the game — draws initial board, binds events, starts main loop.
+        """
+        self.view.update()
+        self.view.canvas.bind("<Button-1>", self._on_click)
+        if not self.game.is_human_turn():
+            self.view.root.after(500, self._ai_move)
+        self.view.root.mainloop()
+
+
+if __name__ == "__main__":
+    game = HexGame(size=11)
+    view = HexView(game)
+    controller = HexController(game, view)
+    controller.start()

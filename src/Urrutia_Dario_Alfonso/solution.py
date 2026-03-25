@@ -50,7 +50,7 @@ class MCTSNode:
         """
         return not untried_moves
 
-    def best_child(self, c_param: float = math.sqrt(2)) -> MCTSNode:
+    def best_child(self, c_param: float = 0.5) -> MCTSNode:
         """
         Selects the best child node based on:
           the UCT (Upper Confidence Bound for Trees) formula.
@@ -87,6 +87,12 @@ class SmartPlayer(Player):
         Returns:
             A tuple (row, col) representing the chosen move.
         """
+
+        # Opening book: center is always strongest first move
+        empty_count = sum(cell == 0 for row in board.board for cell in row)
+        if empty_count == board.size * board.size:
+            center = board.size // 2
+            return (center, center)
 
         root = MCTSNode(board=board.clone())
         start_time = time.time()
@@ -206,8 +212,14 @@ class SmartPlayer(Player):
         empty = self._get_untried_moves(sim_board)
         random.shuffle(empty)
 
+        last_move = None
         for move in empty:
+            if last_move is not None:
+                save = self._get_bridge_save(sim_board, last_move, current_player)
+                if save and sim_board.board[save[0]][save[1]] == 0:
+                    move = save
             sim_board.place_piece(row=move[0], col=move[1], player_id=current_player)
+            last_move = move
             current_player = 3 - current_player  # Switch player (1 <-> 2)
 
         return 1 if sim_board.check_connection(self.player_id) else 0
@@ -225,3 +237,51 @@ class SmartPlayer(Player):
             node.visits += 1
             node.wins += result
             node = node.parent
+
+    def _get_bridge_save(
+        self,
+        board: HexBoard,
+        last_move: tuple[int, int],
+        player: int,
+    ) -> tuple[int, int] | None:
+        """
+        Checks if the last move threatens a bridge and returns the saving move.
+
+        A bridge is a virtual connection between two pieces with two
+        empty cells between them. If one empty cell is played, the
+        other must be played to save the connection.
+
+        Args:
+            board: The current board state.
+            last_move: The move just played by the opponent.
+            player: The player whose bridges to protect.
+
+        Returns:
+            A saving move (row, col) if a bridge is threatened, None otherwise.
+        """
+        row, col = last_move
+        size = board.size
+
+        # Bridge patterns: (offset to friendly piece, offset to saving cell)
+        bridges = [
+            ((-1, 0), (-1, 1)),
+            ((-1, 1), (0, 1)),
+            ((0, 1), (1, 0)),
+            ((1, 0), (1, -1)),
+            ((1, -1), (0, -1)),
+            ((0, -1), (-1, 0)),
+        ]
+
+        for (dr1, dc1), (dr2, dc2) in bridges:
+            r1, c1 = row + dr1, col + dc1
+            r2, c2 = row + dr2, col + dc2
+
+            if not (0 <= r1 < size and 0 <= c1 < size):
+                continue
+            if not (0 <= r2 < size and 0 <= c2 < size):
+                continue
+
+            if board.board[r1][c1] == player and board.board[r2][c2] == 0:
+                return (r2, c2)
+
+        return None

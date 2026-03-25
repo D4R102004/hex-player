@@ -50,7 +50,7 @@ class MCTSNode:
         """
         return not untried_moves
 
-    def best_child(self, c_param: float = math.sqrt(2)) -> MCTSNode:
+    def best_child(self, c_param: float = 0.5) -> MCTSNode:
         """
         Selects the best child node based on:
           the UCT (Upper Confidence Bound for Trees) formula.
